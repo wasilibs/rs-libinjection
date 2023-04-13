@@ -1,0 +1,18 @@
+[package]
+name = "rs-libinjection"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+
+[lib]
+
+[dependencies]
+lazy_static = "1.4.0"
+wasmtime = "7.0.0"
+wasmtime-wasi = "7.0.0"
+
+[dev-dependencies]
+testutil = { version = "*", path = "./testutil" }
+
+rstest = "0.17.0"
+threadpool = "1.8.1"
