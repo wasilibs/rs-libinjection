@@ -1,0 +1,47 @@
+name: CI
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "*"
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - macos-12
+          - ubuntu-22.04
+          - windows-2022
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: setup rust
+        run: |
+          rustup toolchain install stable${{ startsWith(matrix.os, 'windows') && '-gnu' || '' }}
+          rustup default stable${{ startsWith(matrix.os, 'windows') && '-gnu' || '' }}
+          rustup component add clippy
+          rustup component add rustfmt
+
+      - run: cargo check
+
+      - run: cargo test
+
+      - run: cargo fmt --check
+
+      - run: cargo clippy
