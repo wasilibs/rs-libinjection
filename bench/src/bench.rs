@@ -9,7 +9,7 @@ use testutil::get_sqli_tests;
 pub fn sqli_benchmark(c: &mut Criterion) {
     let mut i = 0;
     for test in get_sqli_tests() {
-        c.bench_function(&test.name, |b| b.iter(|| is_sqli(black_box(&test.input))));
+        c.bench_function(&test.name, |b| b.iter(|| is_sqli(black_box(test.input.as_bytes()))));
         i += 1;
     }
 }
