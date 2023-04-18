@@ -23,11 +23,11 @@ thread_local! {
     static ABI: RefCell<Option<Abi>> = RefCell::new(None);
 }
 
-pub fn is_sqli(input: &str) -> (bool, String) {
+pub fn is_sqli(input: &[u8]) -> (bool, String) {
     with_abi(|mut store, abi| {
         let buffer = abi.malloc.call(&mut store, input.len() as u32 + 9).unwrap();
         abi.memory.data_mut(&mut store)[buffer as usize..buffer as usize + input.len()]
-            .copy_from_slice(input.as_bytes());
+            .copy_from_slice(input);
         let result = abi
             .libinjection_sqli
             .call(
@@ -46,11 +46,11 @@ pub fn is_sqli(input: &str) -> (bool, String) {
     })
 }
 
-pub fn is_xss(input: &str) -> bool {
+pub fn is_xss(input: &[u8]) -> bool {
     with_abi(|mut store, abi| {
         let buffer = abi.malloc.call(&mut store, input.len() as u32).unwrap();
         abi.memory.data_mut(&mut store)[buffer as usize..buffer as usize + input.len()]
-            .copy_from_slice(input.as_bytes());
+            .copy_from_slice(input);
         let result = abi
             .libinjection_xss
             .call(&mut store, (buffer, input.len() as u32))
@@ -132,9 +132,9 @@ mod tests {
 
     #[test]
     fn sqli_basic() {
-        let (res, fp) = is_sqli("this is not isqli");
+        let (res, fp) = is_sqli(b"this is not isqli");
         assert!(!res);
-        let (res, fp) = is_sqli("this\nis a ' or ''='\nsql injection");
+        let (res, fp) = is_sqli(b"this\nis a ' or ''='\nsql injection");
         assert!(res);
     }
 
@@ -144,9 +144,9 @@ mod tests {
         for _ in 0..12 {
             threadpool.execute(|| {
                 for _ in 0..1000 {
-                    let (res, fp) = is_sqli("this is not isqli");
+                    let (res, fp) = is_sqli(b"this is not isqli");
                     assert!(!res);
-                    let (res, fp) = is_sqli("this\nis a ' or ''='\nsql injection");
+                    let (res, fp) = is_sqli(b"this\nis a ' or ''='\nsql injection");
                     assert!(res);
                 }
             });
@@ -157,7 +157,7 @@ mod tests {
     #[test]
     fn sqli_alltests() {
         for test in get_sqli_tests() {
-            let (res, fp) = is_sqli(&test.input);
+            let (res, fp) = is_sqli(test.input.as_bytes());
             if &test.expected == "" {
                 assert!(!res);
             } else {
@@ -188,6 +188,6 @@ mod tests {
     #[case("<a href=\"  javascript:alert(1);\" >")]
     #[case("<a href=\"JAVASCRIPT:alert(1);\" >")]
     fn xss_examples(#[case] input: &str) {
-        assert!(is_xss(input));
+        assert!(is_xss(input.as_bytes()));
     }
 }
